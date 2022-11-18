@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from .models import Hashtag, Post
+from .models import Hashtag, Post, Comment
 
 
 # Create your views here.
@@ -17,3 +17,14 @@ def posts_view(request):
             'posts': Post.objects.all()
         }
         return render(request, 'posts/posts.html', context=data)
+
+
+def comment_view(request, **kwargs):
+    if request.method == 'GET':
+        post = Post.objects.get(id=kwargs['id'])
+        comments = Comment.objects.filter(post=post)
+        data = {
+            'post': post,
+            'comments': comments
+        }
+        return render(request, 'posts/post_detail.html', context=data)

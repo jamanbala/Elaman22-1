@@ -1,17 +1,14 @@
 {% extends 'layouts/main.html' %}
-
 {% block content %}
     <style>
         .image > img {
             width: 50%;
             margin-left: 25%;
         }
-
         .comments {
             width: 70%;
             margin-left: 15%;
         }
-
         .comments > div {
             height: 45px;
             margin-bottom: 20px;
@@ -24,7 +21,6 @@
             font-family: sans-serif;
             font-weight: bold;
         }
-
         .text {
             font-size: 15px;
             font-family: sans-serif;
@@ -32,6 +28,12 @@
         .post {
             width: 70%;
             margin-left: 15%;
+        }
+        .create_comment {
+            width: 70%;
+            margin-left: 15%;
+            margin-top: 20px;
+            margin-bottom: 20px;
         }
     </style>
     <div class="post">
@@ -41,7 +43,6 @@
         <div>
             <div style="display:flex; justify-content: space-between">
                 <h1>{{ post.title }}</h1>
-                <h3>{{ post.author.username }}</h3>
             </div>
             <h5>{{ post.description }}</h5>
             <h5>{{ post.category.title }}</h5>
@@ -50,6 +51,14 @@
             </div>
         </div>
     </div>
+    <div class="create_comment">
+        <form action="/posts/{{ post.id }}/" method="post">
+            {% csrf_token %}
+            {{ form }}
+            <input type="submit" class="btn btn-primary" value="Оставьте Комментарий">
+        </form>
+    </div>
+
     <div class="comments">
         {% for comment in comments %}
             <div>

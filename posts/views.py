@@ -1,13 +1,15 @@
 from django.shortcuts import render, redirect
 from .models import Hashtag, Post, Comment
 from .forms import CommentCreateForm, PostCreateForm
+from users.utils import get_user_from_request
 
 
 # Create your views here.
 def hashtags_view(request):
     if request.method == 'GET':
         data = {
-            'hashtags': Hashtag.objects.all()
+            'hashtags': Hashtag.objects.all(),
+            'user': get_user_from_request(request)
         }
         return render(request, 'posts/hashtags.html', context=data)
 
@@ -20,7 +22,8 @@ def posts_view(request):
         else:
             posts = Post.objects.all()
         data = {
-            'posts': posts
+            'posts': posts,
+            'user': get_user_from_request(request)
         }
         return render(request, 'posts/posts.html', context=data)
 
@@ -31,7 +34,8 @@ def post_detail_view(request, **kwargs):
         data = {
             'post': post,
             'comments': Comment.objects.filter(post=post),
-            'form': CommentCreateForm
+            'form': CommentCreateForm,
+            'user': get_user_from_request(request)
         }
         return render(request, 'posts/post_detail.html', context=data)
     if request.method == 'POST':
@@ -51,7 +55,8 @@ def post_detail_view(request, **kwargs):
             data = {
                 'post': post,
                 'comments': comments,
-                'form': form
+                'form': form,
+                'user': get_user_from_request(request)
             }
 
             return render(request, 'posts/post_detail.html', context=data)
@@ -60,7 +65,8 @@ def post_detail_view(request, **kwargs):
 def post_create_view(request):
     if request.method == 'GET':
         data = {
-            'form': PostCreateForm
+            'form': PostCreateForm,
+            'user': get_user_from_request(request)
         }
         return render(request, 'posts/create.html', context=data)
     if request.method == 'POST':
@@ -74,6 +80,7 @@ def post_create_view(request):
             return redirect('/posts/')
         else:
             data = {
-                'form': form
+                'form': form,
+                'user': get_user_from_request(request)
             }
             return render(request, 'posts/create.html', context=data)

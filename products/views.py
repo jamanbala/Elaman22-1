@@ -15,3 +15,5 @@ def now_data(request):
 def goodby(request):
     if request.method == 'GET':
         return HttpResponse('Goodby user!')
+
+

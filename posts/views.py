@@ -2,92 +2,88 @@ from django.shortcuts import render, redirect
 from .models import Hashtag, Post, Comment
 from .forms import CommentCreateForm, PostCreateForm
 from users.utils import get_user_from_request
-
+from django.views import generic
 PAGINATION_LIMIT = 2
 
 
 # Create your views here.
-def hashtags_view(request):
-    if request.method == 'GET':
-        data = {
-            'hashtags': Hashtag.objects.all(),
-            'user': get_user_from_request(request)
+class HashtagListView(generic.ListView):
+    template_name = 'posts/hashtags.html'
+    queryset = Hashtag.objects.all()
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        return {
+            'hashtags': self.get_queryset(),
+            'user': get_user_from_request(self.request)
         }
-        return render(request, 'posts/hashtags.html', context=data)
 
 
-def posts_view(request):
-    if request.method == 'GET':
-        hashtag_id = request.GET.get('hashtag_id')
-        search_text = request.GET.get('search')
-        page = request.GET.get('page', 1)
+class PostListVIew(generic.ListView):
+    template_name = 'posts/posts.html'
+    queryset = Post.objects.all()
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        hashtag_id = self.request.GET.get('hashtag_id')
+        search_text = self.request.GET.get('search')
+        page = int(self.request.GET.get('page', 1))
         if hashtag_id:
             posts = Post.objects.filter(hashtag=Hashtag.objects.get(id=hashtag_id))
         else:
             posts = Post.objects.all()
-
         if search_text:
             posts = posts.filter(title__icontains=search_text)
 
         max_page = round(posts.__len__() / PAGINATION_LIMIT)
-        page = int(page)
-        posts = posts[PAGINATION_LIMIT * (page - 1): PAGINATION_LIMIT * page]
-        data = {
+        posts = posts[PAGINATION_LIMIT * (page - 1):PAGINATION_LIMIT * page]
+        return {
             'posts': posts,
-            'user': get_user_from_request(request),
-            'hashtag_id': hashtag_id,
+            'user': get_user_from_request(self.request),
             'current_page': page,
-            "search_text": search_text,
-            'max_page': list(range(1, max_page + 1))
+            'max_page': list(range(1, max_page + 1)),
+            'hashtag_id': hashtag_id,
+            'search_text': search_text
         }
 
-        return render(request, 'posts/posts.html', context=data)
 
+class PostDetailView(generic.DetailView, generic.CreateView):
+    form_class = CommentCreateForm
+    template_name = 'posts/post_detail.html'
+    queryset = Post.objects.all()
+    pk_url_kwarg = 'id'
 
-def post_detail_view(request, **kwargs):
-    if request.method == 'GET':
-        post = Post.objects.get(id=kwargs['id'])
-        data = {
-            'post': post,
-            'comments': Comment.objects.filter(post=post),
-            'form': CommentCreateForm,
-            'user': get_user_from_request(request)
+    def get_context_data(self, **kwargs):
+        return {
+            'post': self.get_object(),
+            'comments': Comment.objects.filter(post=self.get_object()),
+            'form': kwargs.get('form', self.form_class),
+            'user': get_user_from_request(self.request)
         }
-        return render(request, 'posts/post_detail.html', context=data)
-    if request.method == 'POST':
+
+    def post(self, request, *args, **kwargs):
         form = CommentCreateForm(data=request.POST)
 
         if form.is_valid():
             Comment.objects.create(
-                author_id=1,
+                author=request.user,
                 text=form.cleaned_data.get('text'),
-                post_id=kwargs['id']
+                post_id=self.get_object().id
             )
-            return redirect(f'/posts/{kwargs["id"]}/')
-        else:
-            post = Post.objects.get(id=kwargs['id'])
-            comments = Comment.objects.filter(post=post)
-
-            data = {
-                'post': post,
-                'comments': comments,
-                'form': form,
-                'user': get_user_from_request(request)
-            }
-
-            return render(request, 'posts/post_detail.html', context=data)
+            return redirect(f'/posts/{self.get_object().id}/')
+        return render(request, self.template_name, context=self.get_context_data(form=form))
 
 
-def post_create_view(request):
-    if request.method == 'GET':
-        data = {
-            'form': PostCreateForm,
-            'user': get_user_from_request(request)
+class PostCreateView(generic.CreateView):
+    form_class = PostCreateForm
+    template_name = 'posts/create.html'
+
+    def get_context_data(self, **kwargs):
+        return {
+            'form': kwargs.get('form', self.form_class),
+            'user': get_user_from_request(self.request)
         }
-        return render(request, 'posts/create.html', context=data)
-    if request.method == 'POST':
-        form = PostCreateForm(data=request.POST)
 
+    def post(self, request, *args, **kwargs):
+        form = PostCreateForm(data=request.POST)
         if form.is_valid():
             Post.objects.create(
                 title=form.cleaned_data.get('title'),
@@ -99,4 +95,4 @@ def post_create_view(request):
                 'form': form,
                 'user': get_user_from_request(request)
             }
-            return render(request, 'posts/create.html', context=data)
+            return render(request, self.template_name, self.get_context_data(form=form))
